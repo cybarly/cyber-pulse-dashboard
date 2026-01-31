@@ -135,7 +135,8 @@ const filteredItems = useMemo(() => {
 
           <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
             <p className="text-sm" style={{ color: "var(--muted)" }}>
-              Updated: {mounted ? new Date(data.updatedAt).toLocaleString() : "—"}
+              Updated: {data.updatedAt.slice(0, 19).replace("T", " ")}
+
 
             </p>
 
