@@ -95,7 +95,7 @@ useEffect(() => setMounted(true), []);
       const res = await fetch("/api/snapshot", { cache: "no-store" });
       if (!res.ok) return;
       const next = await res.json();
-      console.log("refresh got updatedAt:", next.updatedAt);
+    
 
       setLiveData(next);
     } catch {
