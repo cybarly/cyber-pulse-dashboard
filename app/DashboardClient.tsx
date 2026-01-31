@@ -23,10 +23,12 @@ type VendorRow = {
 
 type Snapshot = {
   updatedAt: string;
+  servedAt: string; // ✅ חדש
   items: CveItem[];
   vendors: VendorRow[];
   stats: { kevAddedToday: number; avgRisk: number };
 };
+
 
 function pillClass(risk: number) {
   if (risk >= 80) return "bg-red-100 text-red-800";
@@ -43,10 +45,82 @@ function vendorClass(avgRisk: number) {
 }
 
 export default function DashboardClient({ data }: { data: Snapshot }) {
+const [liveData, setLiveData] = useState(data);
+
+// Auto-refresh settings
+const [autoRefresh, setAutoRefresh] = useState<boolean>(false);
+const [refreshSec, setRefreshSec] = useState<number>(60);
+
+
   const [q, setQ] = useState("");
   const [riskFilter, setRiskFilter] = useState<"all" | "high" | "medium" | "low">("all");
   const [mounted, setMounted] = useState(false);
 useEffect(() => setMounted(true), []);
+
+
+  // 3) כשדף נטען: נטען את ההגדרות השמורות מהדפדפן (אם יש)
+  useEffect(() => {
+    const savedOn = localStorage.getItem("autoRefreshOn");
+    const savedSec = localStorage.getItem("autoRefreshSec");
+
+    if (savedOn !== null) setAutoRefresh(savedOn === "1");
+
+    if (savedSec !== null) {
+      const n = Number(savedSec);
+      // בטיחות: לא לאפשר ערכים הזויים
+      if (Number.isFinite(n) && n >= 10 && n <= 600) setRefreshSec(n);
+    }
+  }, []);
+
+
+
+  // 4) כל שינוי: לשמור את ההגדרות
+  useEffect(() => {
+    localStorage.setItem("autoRefreshOn", autoRefresh ? "1" : "0");
+  }, [autoRefresh]);
+
+  useEffect(() => {
+    localStorage.setItem("autoRefreshSec", String(refreshSec));
+  }, [refreshSec]);
+
+
+
+
+
+  // 5) פעולת רענון ידנית/אוטומטית
+  async function refreshNow() {
+    try {
+      
+      const res = await fetch("/api/snapshot", { cache: "no-store" });
+      if (!res.ok) return;
+      const next = await res.json();
+      console.log("refresh got updatedAt:", next.updatedAt);
+
+      setLiveData(next);
+    } catch {
+      // לא מפילים את האתר אם יש תקלה רגעית
+    }
+  }
+
+  // 6) טיימר אוטומטי: עובד רק אם autoRefresh = true
+  useEffect(() => {
+    if (!autoRefresh) return;
+
+    // מרענן פעם אחת מיד כשמדליקים
+    refreshNow();
+
+    const id = window.setInterval(() => {
+      refreshNow();
+    }, refreshSec * 1000);
+
+    return () => window.clearInterval(id);
+  }, [autoRefresh, refreshSec]);
+
+
+
+
+
+
 
 
   function clearFilters() {
@@ -58,7 +132,7 @@ useEffect(() => setMounted(true), []);
   // מנקים את החיפוש: lowercase + trim
   const query = q.trim().toLowerCase();
 const filteredItems = useMemo(() => {
-  let items = data.items;
+  let items = liveData.items;
 
   // 1) סינון לפי חיפוש טקסט
   if (query) {
@@ -77,7 +151,7 @@ const filteredItems = useMemo(() => {
   if (riskFilter === "low") items = items.filter((i) => i.risk < 60);
 
   return items;
-}, [data.items, query, riskFilter]);
+}, [liveData.items, query, riskFilter]);
 
 
   // מחשבים vendors מחדש מתוך items מסוננים (ככה heatmap תואם לחיפוש)
@@ -117,6 +191,41 @@ const filteredItems = useMemo(() => {
         <header className="flex flex-col gap-3 mb-6">
           <div className="flex items-center justify-between gap-3">
             <h1 className="text-2xl font-bold">Cyber Pulse Dashboard</h1>
+
+<div className="flex flex-wrap items-center gap-2">
+  <button
+    onClick={() => setAutoRefresh((v) => !v)}
+    className={`rounded-xl border px-3 py-2 text-sm ${
+      autoRefresh ? "bg-green-600 text-white" : ""
+    }`}
+  >
+    Auto-Refresh: {autoRefresh ? "ON" : "OFF"}
+  </button>
+
+  <select
+    value={refreshSec}
+    onChange={(e) => setRefreshSec(Number(e.target.value))}
+    className="rounded-xl border px-3 py-2 text-sm
+           bg-white text-gray-900 border-gray-200
+           dark:bg-gray-900 dark:text-gray-100 dark:border-gray-800"
+    disabled={!autoRefresh}
+  >
+    <option value={30} style={{ color: "black" }}>Every 30s</option>
+    <option value={60} style={{ color: "black" }}>Every 60s</option>
+    <option value={120} style={{ color: "black" }}>Every 2m</option>
+    <option value={300} style={{ color: "black" }}>Every 5m</option>
+  </select>
+
+  <button
+    onClick={refreshNow}
+    className="rounded-xl border px-3 py-2 text-sm"
+    title="Refresh now"
+  >
+    Refresh
+  </button>
+</div>
+
+            
             <a
     href="https://buymeacoffee.com/cybar"
     target="_blank"
@@ -135,10 +244,12 @@ const filteredItems = useMemo(() => {
 
           <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
             <p className="text-sm" style={{ color: "var(--muted)" }}>
-              Updated: {data.updatedAt.slice(0, 19).replace("T", " ")}
-
-
-            </p>
+  Data updated:{" "}
+  {mounted ? new Date(liveData.updatedAt).toLocaleString() : "—"}
+  {"  "}{"  "}<br/>
+  Last refresh:{" "}
+  {mounted ? new Date(liveData.servedAt).toLocaleString() : "—"}
+</p>
 
             <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
 
@@ -207,7 +318,7 @@ const filteredItems = useMemo(() => {
   style={{ background: "var(--panel)", borderColor: "var(--border)" }}
 >
   <div className="text-sm" style={{ color: "var(--muted)" }}>KEV Added Today</div>
-  <div className="text-2xl font-semibold">{data.stats.kevAddedToday}</div>
+  <div className="text-2xl font-semibold">{liveData.stats.kevAddedToday}</div>
 </div>
 
             <div
@@ -216,7 +327,7 @@ const filteredItems = useMemo(() => {
 >
 
               <div className="text-sm" style={{ color: "var(--muted)" }}>Average risk</div>
-              <div className="text-2xl font-semibold">{data.stats.avgRisk}/100</div>
+              <div className="text-2xl font-semibold">{liveData.stats.avgRisk}/100</div>
             </div>
             <div
   className="rounded-2xl border p-4"

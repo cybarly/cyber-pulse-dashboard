@@ -45,9 +45,10 @@ export type VendorRow = {
 };
 
 export type Snapshot = {
-  updatedAt: string; // ISO
+  updatedAt: string; // מתי הנתונים נבנו (רק כשנבנה snapshot חדש)
+  servedAt: string;  // מתי התשובה הוחזרה עכשיו (מתעדכן בכל רענון)
   items: CveItem[];
-  vendors: VendorRow[]; // ✅ חדש
+  vendors: VendorRow[];
   stats: {
     kevAddedToday: number;
     avgRisk: number;
@@ -55,6 +56,9 @@ export type Snapshot = {
 };
 
 
+
+
+export const dynamic = "force-dynamic";
 
 
 // ---------- utils ----------
@@ -247,10 +251,17 @@ export async function GET() {
   const now = Date.now();
   const cached = globalThis.__snapshotCache;
   if (cached && now - cached.at < TTL_MS) {
-    return NextResponse.json(cached.value, {
-      headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300" },
-    });
-  }
+  return NextResponse.json(
+    {
+      ...cached.value,
+      servedAt: new Date().toISOString(), // ✅ מתעדכן בכל רענון
+    },
+    {
+      headers: { "Cache-Control": "no-store" }, // ✅ שלא ייתקע בקאש חיצוני
+    }
+  );
+}
+
 
   // 1) KEV
   const kev = await fetchJsonWithTimeout<KevFeed>(KEV_URL);
@@ -332,10 +343,14 @@ const vendors = [...vendorMap.entries()]
   const avgRisk =
     items.length === 0 ? 0 : Math.round(items.reduce((s, i) => s + i.risk, 0) / items.length);
 
-  const snapshot: Snapshot = {
-    updatedAt: new Date().toISOString(),
-    items,
-    vendors,
+
+    const nowIso = new Date().toISOString();
+
+const snapshot: Snapshot = {
+  updatedAt: nowIso, // הנתונים נבנו עכשיו
+  servedAt: nowIso,  // וגם התשובה עכשיו
+  items,
+  vendors,
     stats: {
       kevAddedToday: items.filter((i) => i.kevAdded === today).length,
       avgRisk,
@@ -345,6 +360,9 @@ const vendors = [...vendorMap.entries()]
   globalThis.__snapshotCache = { at: now, value: snapshot };
 
   return NextResponse.json(snapshot, {
-    headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300" },
-  });
+  headers: {
+    //"Cache-Control": "public, s-maxage=5",
+    "Cache-Control": "no-store",
+  },
+});
 }
