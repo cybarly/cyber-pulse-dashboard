@@ -1,4 +1,6 @@
 import DashboardClient from "./DashboardClient";
+import { headers } from "next/headers";
+
 
 type CveItem = {
   cve: string;
@@ -24,10 +26,11 @@ type Snapshot = {
   stats: { kevAddedToday: number; avgRisk: number };
 };
 
-import { headers } from "next/headers";
+
 
 async function getSnapshot(): Promise<Snapshot> {
-  const h = headers();
+  const h = await headers();
+
 
   const host = h.get("x-forwarded-host") ?? h.get("host");
   const proto = h.get("x-forwarded-proto") ?? "https";
