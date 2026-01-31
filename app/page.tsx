@@ -46,8 +46,13 @@ async function getSnapshot(): Promise<Snapshot> {
   });
 
   if (!res.ok) {
-    throw new Error("Failed to load snapshot");
-  }
+  return {
+    updatedAt: new Date().toISOString(),
+    items: [],
+    vendors: [],
+    stats: { kevAddedToday: 0, avgRisk: 0 },
+  };
+}
 
   return res.json();
 }
