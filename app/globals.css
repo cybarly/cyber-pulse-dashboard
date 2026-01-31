@@ -1,0 +1,47 @@
+@import "tailwindcss";
+
+/* ===== Theme tokens ===== */
+:root {
+  /* background layers */
+  --bg: #f6f7fb;        /* page background */
+  --panel: #ffffff;     /* cards / panels */
+  --panel-2: #f1f3f8;   /* subtle header/stripes */
+
+  /* text */
+  --text: #0b1020;      /* main text */
+  --muted: #56607a;     /* secondary text */
+  --faint: #7f8aa6;     /* placeholder / hints */
+
+  /* borders & shadows */
+  --border: rgba(15, 23, 42, 0.12);
+  --shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+
+  /* focus ring */
+  --ring: rgba(59, 130, 246, 0.35);
+
+  color-scheme: light;
+}
+
+.dark {
+  --bg: #070a12;
+  --panel: #0c1222;
+  --panel-2: #0a1020;
+
+  --text: #e8eefc;
+  --muted: #a7b3d1;
+  --faint: #7f8aa6;
+
+  --border: rgba(148, 163, 184, 0.22);
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.55);
+
+  --ring: rgba(56, 189, 248, 0.35);
+
+  color-scheme: dark;
+}
+
+/* base */
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: Arial, Helvetica, sans-serif;
+}
