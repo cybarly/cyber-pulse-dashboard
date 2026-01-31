@@ -23,11 +23,12 @@ type VendorRow = {
 
 type Snapshot = {
   updatedAt: string;
-  servedAt?: string;
+  servedAt: string; // ✅ חובה
   items: CveItem[];
   vendors: VendorRow[];
   stats: { kevAddedToday: number; avgRisk: number };
 };
+
 
 
 function pillClass(risk: number) {
@@ -248,7 +249,7 @@ const filteredItems = useMemo(() => {
   {mounted ? new Date(liveData.updatedAt).toLocaleString() : "—"}
   {"  "}{"  "}<br/>
   Last refresh:{" "}
-  {mounted ? new Date(liveData.servedAt).toLocaleString() : "—"}
+  {mounted ? new Date(liveData.servedAt ?? liveData.updatedAt).toLocaleString() : "—"}
 </p>
 
             <div className="flex flex-col sm:flex-row gap-2 sm:items-center">

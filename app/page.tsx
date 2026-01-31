@@ -48,13 +48,16 @@ async function getSnapshot(): Promise<Snapshot> {
   });
 
   if (!res.ok) {
+  const nowIso = new Date().toISOString();
   return {
-    updatedAt: new Date().toISOString(),
+    updatedAt: nowIso,
+    servedAt: nowIso, // ✅ חובה
     items: [],
     vendors: [],
     stats: { kevAddedToday: 0, avgRisk: 0 },
   };
 }
+
 
   return res.json();
 }
