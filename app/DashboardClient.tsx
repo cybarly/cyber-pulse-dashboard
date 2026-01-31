@@ -23,7 +23,7 @@ type VendorRow = {
 
 type Snapshot = {
   updatedAt: string;
-  servedAt: string; // ✅ חדש
+  servedAt?: string;
   items: CveItem[];
   vendors: VendorRow[];
   stats: { kevAddedToday: number; avgRisk: number };
