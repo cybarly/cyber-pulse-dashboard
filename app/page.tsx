@@ -33,7 +33,7 @@ async function getSnapshot(): Promise<Snapshot> {
 
 
   const host = h.get("x-forwarded-host") ?? h.get("host");
-  const proto = h.get("x-forwarded-proto") ?? "https";
+  const proto = h.get("x-forwarded-proto") ?? "https"; //
 
   if (!host) {
     throw new Error("Cannot determine host for snapshot fetch");
